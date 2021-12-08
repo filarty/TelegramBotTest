@@ -12,18 +12,24 @@ from TinkoffApi import API
 
 from settings import BOT_TOKEN
 
-
-
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters.state import State, StatesGroup
 
 logging.basicConfig(level=logging.INFO)
 TOKEN = BOT_TOKEN
+storage = MemoryStorage()
+
+
+class Form(StatesGroup):
+    api = State()
 
 
 class TelegramBot:
     def __init__(self, token: str) -> None:
         self.loop = asyncio.get_event_loop()
         self.bot = Bot(token)
-        self.dp = Dispatcher(self.bot)
+        self.dp = Dispatcher(self.bot, storage=storage)
 
     def messages(self):
         @self.dp.message_handler(commands=['start', 'help'])
@@ -35,14 +41,28 @@ class TelegramBot:
         @self.dp.message_handler()
         async def get_message(message: types.Message):
             if message.text == '💼 Ваш портфель в тинькофф':
-                result = await self.get_portfolio()
-                result = '\n'.join(result)
+                try:
+                    result = await self.get_portfolio()
+                    result = '\n'.join(result)
+
+                except:
+                    result = 'Ваш API ключ не установлен!\n' \
+                             'Получите его на сайте Тинькофф Инвестиции!'
                 await self.bot.send_message(message.from_user.id, result)
 
-    async def get_portfolio(self):
-        account = API.Account("")
-        await account.response()
-        return account.portfolio
+            elif message.text == '🏦 Установить API ключ':
+                await Form.api.set()
+                await self.bot.send_message(message.from_user.id, "Напишите ваш ключ")
+
+        @self.dp.message_handler(state=Form.api)
+        async def set_API(message: types.Message, state: FSMContext):
+            user = DataBaseBot.session.query(DataBaseBot.User).where(
+                DataBaseBot.User.user_id == message.from_user.id).one()
+            async with state.proxy() as data:
+                data['api'] = message.text
+                user.API_key = data['api']
+            DataBaseBot.session.commit()
+            await state.finish()
 
     def add_to_database(self, user_id: str, username: str):
         user = DataBaseBot.User(user_id=int(user_id), user_name=username)

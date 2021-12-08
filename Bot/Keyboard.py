@@ -1,6 +1,6 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
-Button_base = KeyboardButton('💼 Ваш портфель в тинькофф')
+Button1 = KeyboardButton('💼 Ваш портфель в тинькофф')
+Button2 = KeyboardButton('🏦 Установить API ключ')
 
-
-keyboard = ReplyKeyboardMarkup().add(Button_base)
+keyboard = ReplyKeyboardMarkup().add(Button1, Button2)

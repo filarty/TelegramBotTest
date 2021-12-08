@@ -13,9 +13,9 @@ class User(Base):
 
     user_id = Column(Integer, primary_key=True)
     user_name = Column(String)
+    API_key = Column(String)
 
 
 Base.metadata.create_all(engine)
-
 Session = sessionmaker(bind=engine)
 session = Session()
