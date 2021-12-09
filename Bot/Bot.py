@@ -16,6 +16,8 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
+from Template_Text import Text
+
 logging.basicConfig(level=logging.INFO)
 TOKEN = BOT_TOKEN
 storage = MemoryStorage()
@@ -39,15 +41,17 @@ class TelegramBot:
 
         @self.dp.message_handler()
         async def get_message(message: types.Message):
-            if message.text == '💼 Ваш портфель в тинькофф':
+            if message.text == Text.SHOW_PORTFOLIO:
                 try:
                     result = await self.get_portfolio(message.from_user.id)
                     result = '\n'.join(result)
                     await message.reply(result)
                 except aiohttp.ContentTypeError:
-                    await message.reply("Неверный ключ API!")
+                    await message.reply(Text.FALSE_KEY)
+                except Exception:
+                    await message.reply('Вас нет в базе!, введите команду /start')
 
-            elif message.text == '🏦 Установить API ключ':
+            elif message.text == Text.INSTALL_KEY:
                 await Form.api.set()
                 await self.bot.send_message(message.from_user.id, "Напишите ваш ключ")
 
@@ -59,17 +63,16 @@ class TelegramBot:
                 data['api'] = message.text
                 user.API_key = data['api']
             DataBaseBot.session.commit()
-            await message.reply("API ключ успешно установлен!")
+            await message.reply(Text.SUCCESS_KEY)
             await state.finish()
 
     def add_to_database(self, user_id: str, username: str):
         user = DataBaseBot.User(user_id=int(user_id), user_name=username)
+        DataBaseBot.session.add(user)
         try:
-            DataBaseBot.session.add(user)
             DataBaseBot.session.commit()
-        except:
-            return
-
+        except Exception:
+            DataBaseBot.session.rollback()
     async def get_portfolio(self, user_id):
         user = DataBaseBot.session.query(DataBaseBot.User).where(
             DataBaseBot.User.user_id == user_id).one()
