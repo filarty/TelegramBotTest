@@ -13,7 +13,10 @@ class Account:
 
     async def get_porfolio(self):
         response = await self.response()
-        return [f"{i['name']} : {i['balance']}" for i in response['payload']['positions']]
+        return [f"+++ {i['name']} +++ \nКоличество бумаг: {int(i['balance'])}\n" \
+                f"Цена за штуку: {int(i['averagePositionPrice']['value'] * 100) / 100}\n" \
+                f"Общая сумма: {int(i['averagePositionPrice']['value'] * i['balance'] + i['expectedYield']['value'])}"
+                for i in response['payload']['positions']]
 
 
 if __name__ == "__main__":

@@ -44,8 +44,8 @@ class TelegramBot:
             if message.text == Text.SHOW_PORTFOLIO:
                 try:
                     result = await self.get_portfolio(message.from_user.id)
-                    result = '\n'.join(result)
-                    await message.reply(result)
+                    for text in result:
+                        await message.reply(text)
                 except aiohttp.ContentTypeError:
                     await message.reply(Text.FALSE_KEY)
                 except Exception:
@@ -73,6 +73,7 @@ class TelegramBot:
             DataBaseBot.session.commit()
         except Exception:
             DataBaseBot.session.rollback()
+
     async def get_portfolio(self, user_id):
         user = DataBaseBot.session.query(DataBaseBot.User).where(
             DataBaseBot.User.user_id == user_id).one()
