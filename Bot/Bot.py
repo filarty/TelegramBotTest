@@ -1,8 +1,8 @@
 import logging
 
-import asyncio
-
 from aiogram import Bot, Dispatcher, executor, types
+
+import aiohttp
 
 import DataBaseBot
 
@@ -27,7 +27,6 @@ class Form(StatesGroup):
 
 class TelegramBot:
     def __init__(self, token: str) -> None:
-        self.loop = asyncio.get_event_loop()
         self.bot = Bot(token)
         self.dp = Dispatcher(self.bot, storage=storage)
 
@@ -42,13 +41,11 @@ class TelegramBot:
         async def get_message(message: types.Message):
             if message.text == '💼 Ваш портфель в тинькофф':
                 try:
-                    result = await self.get_portfolio()
+                    result = await self.get_portfolio(message.from_user.id)
                     result = '\n'.join(result)
-
-                except:
-                    result = 'Ваш API ключ не установлен!\n' \
-                             'Получите его на сайте Тинькофф Инвестиции!'
-                await self.bot.send_message(message.from_user.id, result)
+                    await message.reply(result)
+                except aiohttp.ContentTypeError:
+                    await message.reply("Неверный ключ API!")
 
             elif message.text == '🏦 Установить API ключ':
                 await Form.api.set()
@@ -62,6 +59,7 @@ class TelegramBot:
                 data['api'] = message.text
                 user.API_key = data['api']
             DataBaseBot.session.commit()
+            await message.reply("API ключ успешно установлен!")
             await state.finish()
 
     def add_to_database(self, user_id: str, username: str):
@@ -71,6 +69,13 @@ class TelegramBot:
             DataBaseBot.session.commit()
         except:
             return
+
+    async def get_portfolio(self, user_id):
+        user = DataBaseBot.session.query(DataBaseBot.User).where(
+            DataBaseBot.User.user_id == user_id).one()
+        account = API.Account(user.API_key)
+        result = await account.get_porfolio()
+        return result
 
     def start(self):
         self.messages()
